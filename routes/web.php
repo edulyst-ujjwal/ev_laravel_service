@@ -28,4 +28,7 @@ Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name
 
 Route::middleware('auth')->group(function () {
     Route::resource('files', FileController::class);
+    Route::get('/get-qr', [App\Http\Controllers\FileController::class, 'generateQr'])->name('genQr');
+    Route::post('/get-qr-save', [App\Http\Controllers\FileController::class, 'genQrsave'])->name('genQrsave');
+
 });

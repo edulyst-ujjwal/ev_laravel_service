@@ -10,20 +10,38 @@ use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class FileController extends Controller
 {
-    public function index(Request $request)
+   public function index(Request $request)
     {
-        $limit = $request->input('limit', 10);
-        $orderBy = $request->input('order_by', 'created_at');
-        $orderDirection = $request->input('order_direction', 'desc');
+        $validated = $request->validate([
+            'limit' => 'sometimes|integer|min:1|max:100',
+            'order_by' => 'sometimes|in:title,created_at',
+            'order_direction' => 'sometimes|in:asc,desc'
+        ]);
+
+        $limit = $validated['limit'] ?? 10;
+        $orderBy = $validated['order_by'] ?? 'created_at';
+        $orderDirection = $validated['order_direction'] ?? 'desc';
+
         $files = File::orderBy($orderBy, $orderDirection)
-                     ->paginate($limit);
+                     ->paginate($limit)
+                     ->appends($request->query());
 
         return view('files.index', compact('files'));
     }
+
+
+
+
     public function create()
     {   
 
         return view('files.create');
+    }
+
+    public function generateQr()
+    {   
+
+        return view('files.qr_generate');
     }
 
 
@@ -130,14 +148,13 @@ class FileController extends Controller
 
     public function getqrcode(Request $request)
     {
-        $request->validate([
-            'url' => 'required|url',
-            'title' => 'nullable|string|max:255'
-        ]);
+        // $request->validate([
+        //     'url' => 'required|url',
+        // ]);
 
-        try {
+        // try {
             $url = $request->input('url');
-            $title = $request->input('title', 'QR Code for ' . $url);
+            $title = 'QR Code for ' . $url;
             
             // Generate QR code as PNG image in memory
             $qrCodeImage = QrCode::format('png')
@@ -171,15 +188,37 @@ class FileController extends Controller
                 'status' => 1,
                 'message' => 'QR code generated successfully',
                 'qrcode_url' => $fileUrl,
-                'file' => $file
+                // 'file' => $file
             ], 201);
             
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => 0,
-                'message' => 'Failed to generate QR code',
-                'error' => $e->getMessage()
-            ], 500);
+        // } catch (\Exception $e) {
+        //     return response()->json([
+        //         'status' => 0,
+        //         'message' => 'Failed to generate QR code',
+        //         'error' => $e->getMessage()
+        //     ], 500);
+        // }
+    }
+
+
+    public function genQrsave(Request $request)
+    {   
+        $result = $this->getqrcode($request);
+        $data = $result->getData(true);
+
+        if ($data['status'] === 1) {
+            // Stream the remote file as a download
+            $fileUrl = $data['qrcode_url'];
+            $fileContents = file_get_contents($fileUrl); // Fetch the file
+            return response()->streamDownload(
+                function () use ($fileContents) {
+                    echo $fileContents;
+                },
+                'qrcode.png',
+                ['Content-Type' => 'image/png']
+            );
         }
+
+        return $result;
     }
 }
