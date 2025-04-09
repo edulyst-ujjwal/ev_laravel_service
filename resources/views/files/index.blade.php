@@ -4,6 +4,11 @@
     <!-- Main Content -->
      @include('layouts.left-sidebar')
     <div style="padding: 20px; max-width: 1200px; margin: 0 auto;">
+       @if (session('success'))
+            <div id="successMessage" class="alert alert-success">
+                {{ session('success') }}
+            </div>
+        @endif
         <h1 style="font-size: 2em; margin-bottom: 20px;">Files</h1>
         <a href="{{ route('files.create') }}" style="display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 4px;">Upload New File</a>
 
@@ -70,6 +75,7 @@
             </tbody>
         </table>
     </div>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <script>
         function copyUrl(elementId) {
@@ -86,4 +92,13 @@
                 });
         }
     </script>
+
+    <script>
+        $(document).ready(function() {
+            setTimeout(function() {
+                $('#successMessage').fadeOut('slow');
+            }, 3000); // 3 seconds
+        });
+    </script>
+
 @endsection
